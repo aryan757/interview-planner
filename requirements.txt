@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+langchain
+langchain-openai
+pydantic
+pypdf
+python-docx
+python-multipart
+python-dotenv
+motor
+pymongo
