@@ -28,5 +28,6 @@ class QuestionSet(BaseModel):
 class GenerateQuestionsResponse(BaseModel):
     """Final API response shape returned to the client."""
 
+    user_id: str
     interview_id: str
     questions: List[QuestionItem]

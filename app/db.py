@@ -37,6 +37,7 @@ def _get_collection():
 
 async def save_generation(
     *,
+    user_id: str,
     interview_id: str,
     domain: str,
     intensity: str,
@@ -56,6 +57,7 @@ async def save_generation(
         return None
 
     document: Dict[str, Any] = {
+        "user_id": user_id,
         "interview_id": interview_id,
         "request": {
             "domain": domain,

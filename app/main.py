@@ -31,6 +31,7 @@ app = FastAPI(title="Interview Question Generator")
 # Required form fields and their allowed values, surfaced in error responses so
 # the caller knows exactly what to send for any permutation of missing fields.
 REQUIRED_FIELDS = {
+    "user_id": ["<any non-empty string>"],
     "domain": sorted(ALLOWED_DOMAINS),
     "intensity": sorted(ALLOWED_INTENSITIES),
     "interview_id": sorted(ALLOWED_INTERVIEW_IDS),
@@ -87,6 +88,7 @@ async def health():
 
 @app.post("/generate-questions", response_model=GenerateQuestionsResponse)
 async def generate_questions(
+    user_id: str = Form(...),
     domain: str = Form(...),
     intensity: str = Form(...),
     interview_id: str = Form(...),
@@ -132,14 +134,16 @@ async def generate_questions(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"LLM generation failed: {exc}")
 
-    # 7 & 8. Inject pass-through interview_id and build response.
+    # 7 & 8. Inject pass-through user_id + interview_id and build response.
     response = GenerateQuestionsResponse(
+        user_id=user_id,
         interview_id=interview_id,
         questions=result.questions,
     )
 
     # 9. Persist the result to MongoDB (best-effort; never fails the request).
     await save_generation(
+        user_id=user_id,
         interview_id=interview_id,
         domain=domain,
         intensity=intensity,
