@@ -9,6 +9,7 @@ load_dotenv()
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.exceptions import RequestValidationError  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
 from app.chain import generate_question_set  # noqa: E402
@@ -24,9 +25,28 @@ from app.config import (  # noqa: E402
 from app.document_extract import extract_resume_text  # noqa: E402
 from app.kb_loader import load_kb_slice  # noqa: E402
 from app.prompt_builder import build_prompts  # noqa: E402
-from app.schemas import GenerateQuestionsResponse  # noqa: E402
+from app.evaluation import load_evaluation  # noqa: E402
+from app.schemas import GenerateQuestionsResponse, EvaluationResponse  # noqa: E402
 
 app = FastAPI(title="Interview Question Generator")
+
+# Allow the browser frontend (a different origin, e.g. http://localhost:4321) to
+# call this API directly. Configure with CORS_ALLOW_ORIGINS (comma-separated);
+# defaults to "*" for local development.
+import os  # noqa: E402
+
+_cors_origins = [
+    o.strip()
+    for o in os.environ.get("CORS_ALLOW_ORIGINS", "*").split(",")
+    if o.strip()
+] or ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Required form fields and their allowed values, surfaced in error responses so
 # the caller knows exactly what to send for any permutation of missing fields.
@@ -84,6 +104,18 @@ def _validate(field: str, value: str, allowed: set) -> None:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/evaluation/{user_id}", response_model=EvaluationResponse)
+async def get_evaluation(user_id: int):
+    """Return the latest completed voice interview evaluation for a user."""
+    result = await load_evaluation(user_id)
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No completed voice interview evaluation found for user_id={user_id}",
+        )
+    return result
 
 
 @app.post("/generate-questions", response_model=GenerateQuestionsResponse)

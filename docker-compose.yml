@@ -1,0 +1,29 @@
+# Interview question generator — standalone Docker stack.
+#
+# Start:
+#   cp .env.example .env   # if needed
+#   docker compose up -d --build
+#
+# Health: http://127.0.0.1:8001/health
+#
+# When vgiskill-be runs in Docker, point it at this service with:
+#   INTERVIEW_PLANNER_URL=http://host.docker.internal:8001
+
+services:
+  interview-planner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: interview-planner:local
+    container_name: interview-planner
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    ports:
+      - "127.0.0.1:${INTERVIEW_PLANNER_HOST_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

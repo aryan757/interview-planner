@@ -9,7 +9,7 @@ from functools import lru_cache
 from langchain_openai import ChatOpenAI
 
 from app.config import OPENAI_MODEL, OPENAI_TEMPERATURE
-from app.schemas import QuestionSet
+from app.schemas import ConversationScore, QuestionSet
 
 
 @lru_cache(maxsize=1)
@@ -29,3 +29,20 @@ def generate_question_set(system_prompt: str, human_prompt: str) -> QuestionSet:
         ]
     )
     return result
+
+
+@lru_cache(maxsize=1)
+def _get_scoring_llm():
+    """Build the transcript-scoring LLM once (temperature 0 for stable scores)."""
+    llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0)
+    return llm.with_structured_output(ConversationScore)
+
+
+def score_conversation(system_prompt: str, human_prompt: str) -> ConversationScore:
+    """Single LLM call -> validated ConversationScore for a saved transcript."""
+    return _get_scoring_llm().invoke(
+        [
+            ("system", system_prompt),
+            ("human", human_prompt),
+        ]
+    )
